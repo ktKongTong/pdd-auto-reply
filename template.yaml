@@ -63,6 +63,7 @@ spec:
             expose: true
           MYSQL_PASSWORD:
             default: ${PASSWORD}
+            default: ${MYSQL_ROOT_PASSWORD}
             expose: true
           TZ:
             default: Asia/Shanghai
@@ -114,6 +115,7 @@ spec:
         source:
           source: GITHUB
           repo: https://github.com/ktKongTong/pdd-auto-reply.git
+          repo: 1359905419
           branch: main
           watchPaths:
             - backend/**
@@ -189,6 +191,7 @@ spec:
         source:
           source: GITHUB
           repo: https://github.com/ktKongTong/pdd-auto-reply.git
+          repo: 1359905419
           branch: main
           watchPaths:
             - websocket/**
@@ -263,6 +266,7 @@ spec:
         source:
           source: GITHUB
           repo: https://github.com/ktKongTong/pdd-auto-reply.git
+          repo: 1359905419
           branch: main
           watchPaths:
             - scheduler/**
@@ -325,6 +329,7 @@ spec:
         source:
           source: GITHUB
           repo: https://github.com/ktKongTong/pdd-auto-reply.git
+          repo: 1359905419
           branch: main
           watchPaths:
             - frontend/**
