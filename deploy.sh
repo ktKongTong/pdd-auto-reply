@@ -75,7 +75,7 @@ if [ ! -f "$ENV_FILE" ]; then
 fi
 
 # ---- 读取项目名（用于精确清理本项目资源；默认与目录约定一致）----
-PROJECT_NAME="$(grep -E '^COMPOSE_PROJECT_NAME=' "$ENV_FILE" 2>/dev/null | head -n1 | cut -d '=' -f2 | tr -d '\r' || true)"
+PROJECT_NAME="pdd-auto-reply"
 PROJECT_NAME="${PROJECT_NAME:-pdd-auto-reply}"
 export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
 
@@ -90,7 +90,7 @@ echo -e "${CYAN}[信息] 项目目录: $WORK_DIR${NC}"
 # ---- 安全确认（删除容器 / 镜像属于不可逆操作，需用户确认；-y 可跳过）----
 if [ "$ASSUME_YES" -ne 1 ]; then
     echo ""
-    echo -e "${YELLOW}本操作将删除本项目（$PROJECT_NAME）已存在的容器与镜像，并重新构建启动。${NC}"
+    echo -e "${YELLOW}本操作将删除本项目（pdd-auto-reply）已存在的容器与镜像，并重新构建启动。${NC}"
     echo -e "${YELLOW}数据卷（MySQL / Redis 数据）将被保留，不会删除。${NC}"
     read -r -p "确认继续？[y/N] " confirm
     case "$confirm" in
