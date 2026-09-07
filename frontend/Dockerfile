@@ -38,6 +38,10 @@ RUN sed -i 's|dl-cdn.alpinelinux.org|mirrors.aliyun.com|g' /etc/apk/repositories
 # 用环境变量渲染为 /etc/nginx/conf.d/default.conf（仅替换已声明的环境变量）。
 COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
 
+# 增加启动等待脚本：确保后端 DNS 解析就绪后再启动 Nginx，避免冷启动瞬时崩溃
+COPY frontend/25-wait-for-backend.sh /docker-entrypoint.d/25-wait-for-backend.sh
+RUN chmod +x /docker-entrypoint.d/25-wait-for-backend.sh
+
 # 复制构建产物（已混淆压缩，不含可读源码）
 COPY --from=builder /app/dist /usr/share/nginx/html
 

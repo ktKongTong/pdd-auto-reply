@@ -52,10 +52,22 @@ spec:
           MYSQL_DATABASE:
             default: pdd_auto_reply
             expose: true
+          MYSQL_HOST:
+            default: mysql.zeabur.internal
+            expose: true
+          MYSQL_PORT:
+            default: "3306"
+            expose: true
+          MYSQL_USERNAME:
+            default: root
+            expose: true
+          MYSQL_PASSWORD:
+            default: ${PASSWORD}
+            expose: true
           TZ:
             default: Asia/Shanghai
         ports:
-          - id: mysql-port
+          - id: db
             port: 3306
             type: TCP
         volumes:
@@ -71,10 +83,19 @@ spec:
         source:
           image: redis:7-alpine
         env:
+          REDIS_HOST:
+            default: redis.zeabur.internal
+            expose: true
+          REDIS_PORT:
+            default: "6379"
+            expose: true
+          REDIS_PASSWORD:
+            default: ""
+            expose: true
           TZ:
             default: Asia/Shanghai
         ports:
-          - id: redis-port
+          - id: redis
             port: 6379
             type: TCP
         volumes:
@@ -91,9 +112,12 @@ spec:
         - redis
       spec:
         source:
-          source: ARBITRARY_GIT
-          gitURL: https://github.com/ktKongTong/pdd-auto-reply.git
+          source: GITHUB
+          repo: https://github.com/ktKongTong/pdd-auto-reply.git
           branch: main
+          watchPaths:
+            - backend/**
+            - common/**
         env:
           ZBPACK_DOCKERFILE_PATH:
             default: backend/Dockerfile
@@ -121,6 +145,8 @@ spec:
             default: "0"
           BACKEND_WEB_PORT:
             default: "8089"
+          PORT:
+            default: "8089"
           BACKEND_WEB_SERVICE_URL:
             default: http://backend.zeabur.internal:8089
           WEBSOCKET_SERVICE_URL:
@@ -143,7 +169,7 @@ spec:
           LOG_LEVEL:
             default: INFO
         ports:
-          - id: backend-api
+          - id: web
             port: 8089
             type: HTTP
         volumes:
@@ -161,9 +187,12 @@ spec:
         - backend
       spec:
         source:
-          source: ARBITRARY_GIT
-          gitURL: https://github.com/ktKongTong/pdd-auto-reply.git
+          source: GITHUB
+          repo: https://github.com/ktKongTong/pdd-auto-reply.git
           branch: main
+          watchPaths:
+            - websocket/**
+            - common/**
         env:
           ZBPACK_DOCKERFILE_PATH:
             default: websocket/Dockerfile
@@ -191,6 +220,8 @@ spec:
             default: "0"
           WEBSOCKET_PORT:
             default: "8090"
+          PORT:
+            default: "8090"
           BACKEND_WEB_SERVICE_URL:
             default: http://backend.zeabur.internal:8089
           WEBSOCKET_SERVICE_URL:
@@ -212,7 +243,7 @@ spec:
           LOG_LEVEL:
             default: INFO
         ports:
-          - id: ws-port
+          - id: web
             port: 8090
             type: HTTP
         volumes:
@@ -230,9 +261,12 @@ spec:
         - backend
       spec:
         source:
-          source: ARBITRARY_GIT
-          gitURL: https://github.com/ktKongTong/pdd-auto-reply.git
+          source: GITHUB
+          repo: https://github.com/ktKongTong/pdd-auto-reply.git
           branch: main
+          watchPaths:
+            - scheduler/**
+            - common/**
         env:
           ZBPACK_DOCKERFILE_PATH:
             default: scheduler/Dockerfile
@@ -260,6 +294,8 @@ spec:
             default: "0"
           SCHEDULER_PORT:
             default: "8091"
+          PORT:
+            default: "8091"
           BACKEND_WEB_SERVICE_URL:
             default: http://backend.zeabur.internal:8089
           WEBSOCKET_SERVICE_URL:
@@ -273,7 +309,7 @@ spec:
           LOG_LEVEL:
             default: INFO
         ports:
-          - id: sched-port
+          - id: web
             port: 8091
             type: HTTP
 
@@ -287,9 +323,11 @@ spec:
         - backend
       spec:
         source:
-          source: ARBITRARY_GIT
-          gitURL: https://github.com/ktKongTong/pdd-auto-reply.git
+          source: GITHUB
+          repo: https://github.com/ktKongTong/pdd-auto-reply.git
           branch: main
+          watchPaths:
+            - frontend/**
         env:
           ZBPACK_DOCKERFILE_PATH:
             default: frontend/Dockerfile
@@ -297,7 +335,9 @@ spec:
             default: Asia/Shanghai
           BACKEND_API_URL:
             default: http://backend.zeabur.internal:8089
+          PORT:
+            default: "80"
         ports:
-          - id: http
+          - id: web
             port: 80
             type: HTTP
