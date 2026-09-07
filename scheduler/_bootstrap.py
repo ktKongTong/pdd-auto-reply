@@ -32,7 +32,8 @@ PROJECT_NAME = "拼多多自动回复系统 - scheduler 定时任务服务"
 # - SCHEDULER_HOST：监听地址，默认 0.0.0.0（容器内对外可达）；
 # - SCHEDULER_PORT：监听端口，默认 8091。
 SERVICE_HOST = os.getenv("SCHEDULER_HOST", "0.0.0.0")
-SERVICE_PORT = int(os.getenv("SCHEDULER_PORT", "8091"))
+# 服务端口默认 8091，优先支持 PaaS 的 PORT 环境变量，缺省经 SCHEDULER_PORT 读取。
+SERVICE_PORT = int(os.getenv("PORT") or os.getenv("SCHEDULER_PORT", "8091"))
 
 
 def _success_response(message: str, data: object = None) -> dict:

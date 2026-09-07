@@ -39,8 +39,8 @@ from routes import api_router
 SERVICE_NAME = "pdd-websocket-service"
 # 监听地址默认 0.0.0.0（容器/多机部署可访问），可经 WEBSOCKET_HOST 覆盖。
 SERVICE_HOST = os.getenv("WEBSOCKET_HOST", "0.0.0.0")
-# 服务端口默认 8090，经环境变量 WEBSOCKET_PORT 读取。
-SERVICE_PORT = int(os.getenv("WEBSOCKET_PORT", "8090"))
+# 服务端口默认 8090，优先支持 PaaS 的 PORT 环境变量，缺省经 WEBSOCKET_PORT 读取。
+SERVICE_PORT = int(os.getenv("PORT") or os.getenv("WEBSOCKET_PORT", "8090"))
 # 业务路由统一前缀，默认 /api/v1（与 backend / scheduler 调用方约定一致）。
 API_PREFIX = os.getenv("WEBSOCKET_API_PREFIX", "/api/v1")
 

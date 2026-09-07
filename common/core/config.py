@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 common.core.config —— 统一配置加载模块
 ======================================
@@ -25,7 +25,7 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote_plus
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # 项目根目录下的 .env 绝对路径。
@@ -72,9 +72,20 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------
     mysql_host: str = Field(default="mysql")
     mysql_port: int = Field(default=3306)
-    mysql_user: str = Field(default="root")
+    mysql_user: str = Field(
+        default="root",
+        validation_alias=AliasChoices("mysql_user", "mysql_username"),
+    )
     mysql_password: str = Field(default="root", repr=False)
     mysql_database: str = Field(default="pdd_auto_reply")
+    # 外部完整数据库连接串覆盖（如 Zeabur / 云平台注入的 MYSQL_URI 或 DATABASE_URL）
+    database_url_override: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "database_url", "mysql_uri", "mysql_connection_string"
+        ),
+        repr=False,
+    )
     # SQLAlchemy 同步驱动（参数化查询，禁止字符串拼接 SQL —— 开发规范 16）
     sync_driver: str = Field(default="mysql+pymysql")
 
@@ -86,6 +97,14 @@ class Settings(BaseSettings):
     redis_port: int = Field(default=6379)
     redis_password: str = Field(default="", repr=False)
     redis_db: int = Field(default=0)
+    # 外部完整 Redis 连接串覆盖（如 Zeabur 注入的 REDIS_CONNECTION_STRING / REDIS_URL）
+    redis_url_override: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "redis_url", "redis_uri", "redis_connection_string"
+        ),
+        repr=False,
+    )
 
     # ------------------------------------------------------------------
     # JWT 配置（需求 1：认证鉴权）
@@ -157,7 +176,18 @@ class Settings(BaseSettings):
     # ==================================================================
     @property
     def database_url(self) -> str:
-        """组装 MySQL 同步连接 URL（密码做 URL 转义，防止特殊字符破坏 URL）。"""
+        """组装 MySQL 同步连接 URL（密码做 URL 转义，防止特殊字符破坏 URL）。
+
+        若外部经环境变量注入了完整连接串（DATABASE_URL / MYSQL_URI），
+        优先使用并确保其驱动协议为 mysql+pymysql://，规避 SQLAlchemy 默认
+        查找不存在的 MySQLdb 驱动。
+        """
+        if self.database_url_override:
+            url = self.database_url_override.strip()
+            if url.startswith("mysql://"):
+                url = "mysql+pymysql://" + url[len("mysql://") :]
+            return url
+
         password = quote_plus(self.mysql_password)
         return (
             f"{self.sync_driver}://{self.mysql_user}:{password}"
@@ -166,7 +196,9 @@ class Settings(BaseSettings):
 
     @property
     def redis_url(self) -> str:
-        """组装 Redis 连接 URL；无密码时省略密码段。"""
+        """组装 Redis 连接 URL；优先使用外部注入的完整连接串。"""
+        if self.redis_url_override:
+            return self.redis_url_override.strip()
         if self.redis_password:
             password = quote_plus(self.redis_password)
             return f"redis://:{password}@{self.redis_host}:{self.redis_port}/{self.redis_db}"

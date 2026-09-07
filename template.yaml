@@ -1,0 +1,303 @@
+# yaml-language-server: $schema=https://schema.zeabur.app/template.json
+apiVersion: zeabur.com/v1
+kind: Template
+metadata:
+  name: pdd-auto-reply
+spec:
+  description: 拼多多自动回复系统多服务拓扑编排（MySQL, Redis, Backend, WebSocket, Scheduler, Frontend）
+  tags:
+    - eCommerce
+    - Python
+    - Vue
+    - Automation
+  variables:
+    - key: FRONTEND_DOMAIN
+      type: DOMAIN
+      name: 前端访问域名
+      description: 访问系统的公网域名（Zeabur 将自动为您分配或绑定）
+    - key: JWT_SECRET_KEY
+      type: PASSWORD
+      name: JWT 签名密钥
+      description: 认证鉴权密钥（生产请务必使用强随机值）
+    - key: DATA_ENCRYPT_KEY
+      type: PASSWORD
+      name: 敏感数据加密密钥
+      description: 用于加密 Cookie 凭据、账号密码等敏感字段的对称密钥
+    - key: INTERNAL_SERVICE_TOKEN
+      type: PASSWORD
+      name: 服务间内网通信令牌
+      description: websocket / scheduler 回调 backend 内部接口鉴权密钥
+    - key: DEFAULT_ADMIN_USERNAME
+      type: STRING
+      name: 超级管理员用户名
+      description: 首次启动自检时创建的超级管理员用户名（可填 admin）
+    - key: DEFAULT_ADMIN_PASSWORD
+      type: PASSWORD
+      name: 超级管理员初始密码
+      description: 首次启动自检时创建的管理员初始密码，登录后请及时修改
+
+  services:
+    # ==========================================================================
+    # MySQL 8.0 —— 关系型数据库
+    # ==========================================================================
+    - name: mysql
+      template: PREBUILT
+      spec:
+        source:
+          image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD:
+            default: ${PASSWORD}
+            expose: true
+          MYSQL_DATABASE:
+            default: pdd_auto_reply
+            expose: true
+          TZ:
+            default: Asia/Shanghai
+        ports:
+          - id: mysql-port
+            port: 3306
+            type: TCP
+        volumes:
+          - id: mysql-data
+            dir: /var/lib/mysql
+
+    # ==========================================================================
+    # Redis 7 —— 缓存与分布式锁
+    # ==========================================================================
+    - name: redis
+      template: PREBUILT
+      spec:
+        source:
+          image: redis:7-alpine
+        env:
+          TZ:
+            default: Asia/Shanghai
+        ports:
+          - id: redis-port
+            port: 6379
+            type: TCP
+        volumes:
+          - id: redis-data
+            dir: /data
+
+    # ==========================================================================
+    # Backend —— HTTP API 核心服务（建表自检与管理员生成）
+    # ==========================================================================
+    - name: backend
+      template: GIT
+      dependencies:
+        - mysql
+        - redis
+      spec:
+        source:
+          source: ARBITRARY_GIT
+          gitURL: https://github.com/ktKongTong/pdd-auto-reply.git
+          branch: main
+        env:
+          ZBPACK_DOCKERFILE_PATH:
+            default: backend/Dockerfile
+          ENVIRONMENT:
+            default: production
+          TZ:
+            default: Asia/Shanghai
+          MYSQL_HOST:
+            default: ${MYSQL_HOST}
+          MYSQL_PORT:
+            default: ${MYSQL_PORT}
+          MYSQL_USER:
+            default: ${MYSQL_USERNAME}
+          MYSQL_PASSWORD:
+            default: ${MYSQL_PASSWORD}
+          MYSQL_DATABASE:
+            default: ${MYSQL_DATABASE}
+          REDIS_HOST:
+            default: ${REDIS_HOST}
+          REDIS_PORT:
+            default: ${REDIS_PORT}
+          REDIS_PASSWORD:
+            default: ${REDIS_PASSWORD}
+          REDIS_DB:
+            default: "0"
+          BACKEND_WEB_PORT:
+            default: "8089"
+          BACKEND_WEB_SERVICE_URL:
+            default: http://backend.zeabur.internal:8089
+          WEBSOCKET_SERVICE_URL:
+            default: http://websocket.zeabur.internal:8090
+          SCHEDULER_SERVICE_URL:
+            default: http://scheduler.zeabur.internal:8091
+          JWT_SECRET_KEY:
+            default: ${JWT_SECRET_KEY}
+            expose: true
+          DATA_ENCRYPT_KEY:
+            default: ${DATA_ENCRYPT_KEY}
+            expose: true
+          INTERNAL_SERVICE_TOKEN:
+            default: ${INTERNAL_SERVICE_TOKEN}
+            expose: true
+          DEFAULT_ADMIN_USERNAME:
+            default: ${DEFAULT_ADMIN_USERNAME}
+          DEFAULT_ADMIN_PASSWORD:
+            default: ${DEFAULT_ADMIN_PASSWORD}
+          LOG_LEVEL:
+            default: INFO
+        ports:
+          - id: backend-api
+            port: 8089
+            type: HTTP
+        volumes:
+          - id: backend-static
+            dir: /app/backend/static
+
+    # ==========================================================================
+    # WebSocket —— 拼多多长连接与浏览器会话通道
+    # ==========================================================================
+    - name: websocket
+      template: GIT
+      dependencies:
+        - mysql
+        - redis
+        - backend
+      spec:
+        source:
+          source: ARBITRARY_GIT
+          gitURL: https://github.com/ktKongTong/pdd-auto-reply.git
+          branch: main
+        env:
+          ZBPACK_DOCKERFILE_PATH:
+            default: websocket/Dockerfile
+          ENVIRONMENT:
+            default: production
+          TZ:
+            default: Asia/Shanghai
+          MYSQL_HOST:
+            default: ${MYSQL_HOST}
+          MYSQL_PORT:
+            default: ${MYSQL_PORT}
+          MYSQL_USER:
+            default: ${MYSQL_USERNAME}
+          MYSQL_PASSWORD:
+            default: ${MYSQL_PASSWORD}
+          MYSQL_DATABASE:
+            default: ${MYSQL_DATABASE}
+          REDIS_HOST:
+            default: ${REDIS_HOST}
+          REDIS_PORT:
+            default: ${REDIS_PORT}
+          REDIS_PASSWORD:
+            default: ${REDIS_PASSWORD}
+          REDIS_DB:
+            default: "0"
+          WEBSOCKET_PORT:
+            default: "8090"
+          BACKEND_WEB_SERVICE_URL:
+            default: http://backend.zeabur.internal:8089
+          WEBSOCKET_SERVICE_URL:
+            default: http://websocket.zeabur.internal:8090
+          SCHEDULER_SERVICE_URL:
+            default: http://scheduler.zeabur.internal:8091
+          JWT_SECRET_KEY:
+            default: ${JWT_SECRET_KEY}
+          DATA_ENCRYPT_KEY:
+            default: ${DATA_ENCRYPT_KEY}
+          INTERNAL_SERVICE_TOKEN:
+            default: ${INTERNAL_SERVICE_TOKEN}
+          BROWSER_HEADLESS:
+            default: "true"
+          MAX_CAPTCHA_CONCURRENT:
+            default: "1"
+          PLAYWRIGHT_USER_DATA_DIR:
+            default: /app/websocket/browser_data
+          LOG_LEVEL:
+            default: INFO
+        ports:
+          - id: ws-port
+            port: 8090
+            type: HTTP
+        volumes:
+          - id: ws-browser-data
+            dir: /app/websocket/browser_data
+
+    # ==========================================================================
+    # Scheduler —— 定时任务服务（Cookie 刷新、商品同步、日志清理）
+    # ==========================================================================
+    - name: scheduler
+      template: GIT
+      dependencies:
+        - mysql
+        - redis
+        - backend
+      spec:
+        source:
+          source: ARBITRARY_GIT
+          gitURL: https://github.com/ktKongTong/pdd-auto-reply.git
+          branch: main
+        env:
+          ZBPACK_DOCKERFILE_PATH:
+            default: scheduler/Dockerfile
+          ENVIRONMENT:
+            default: production
+          TZ:
+            default: Asia/Shanghai
+          MYSQL_HOST:
+            default: ${MYSQL_HOST}
+          MYSQL_PORT:
+            default: ${MYSQL_PORT}
+          MYSQL_USER:
+            default: ${MYSQL_USERNAME}
+          MYSQL_PASSWORD:
+            default: ${MYSQL_PASSWORD}
+          MYSQL_DATABASE:
+            default: ${MYSQL_DATABASE}
+          REDIS_HOST:
+            default: ${REDIS_HOST}
+          REDIS_PORT:
+            default: ${REDIS_PORT}
+          REDIS_PASSWORD:
+            default: ${REDIS_PASSWORD}
+          REDIS_DB:
+            default: "0"
+          SCHEDULER_PORT:
+            default: "8091"
+          BACKEND_WEB_SERVICE_URL:
+            default: http://backend.zeabur.internal:8089
+          WEBSOCKET_SERVICE_URL:
+            default: http://websocket.zeabur.internal:8090
+          SCHEDULER_SERVICE_URL:
+            default: http://scheduler.zeabur.internal:8091
+          JWT_SECRET_KEY:
+            default: ${JWT_SECRET_KEY}
+          DATA_ENCRYPT_KEY:
+            default: ${DATA_ENCRYPT_KEY}
+          LOG_LEVEL:
+            default: INFO
+        ports:
+          - id: sched-port
+            port: 8091
+            type: HTTP
+
+    # ==========================================================================
+    # Frontend —— Vue 3 前端应用与 Nginx 反向代理
+    # ==========================================================================
+    - name: frontend
+      template: GIT
+      domainKey: FRONTEND_DOMAIN
+      dependencies:
+        - backend
+      spec:
+        source:
+          source: ARBITRARY_GIT
+          gitURL: https://github.com/ktKongTong/pdd-auto-reply.git
+          branch: main
+        env:
+          ZBPACK_DOCKERFILE_PATH:
+            default: frontend/Dockerfile
+          TZ:
+            default: Asia/Shanghai
+          BACKEND_API_URL:
+            default: http://backend.zeabur.internal:8089
+        ports:
+          - id: http
+            port: 80
+            type: HTTP

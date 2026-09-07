@@ -169,6 +169,27 @@ npm run build
 
 ---
 
+## 生产部署
+
+### 方式一：Docker Compose 一键部署（自建 VPS）
+
+```bash
+# 复制并编辑生产环境配置
+cp .env.example .env
+vim .env
+
+# 一键构建并启动全部容器（保留数据卷安全）
+bash deploy.sh
+```
+
+### 方式二：Zeabur PaaS 平台部署（云端一键托管）
+
+本项目已针对 Zeabur 提供完整的 Monorepo 多服务适配：
+- **一键模板部署**：根目录下提供 [`template.yaml`](template.yaml)，可直接通过 `npx zeabur template deploy -f template.yaml` 部署。
+- **控制台手动部署与环境变量参考**：请参阅完整指引文档 [Zeabur 部署指南](docs/zeabur_deployment.md) 及 [`.env.zeabur.example`](.env.zeabur.example)。
+
+---
+
 ## 测试
 
 各服务均提供 pytest 测试（含基于 Hypothesis 的属性测试）：

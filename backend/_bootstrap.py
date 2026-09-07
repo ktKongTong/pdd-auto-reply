@@ -1,4 +1,4 @@
-﻿"""
+"""
 backend 服务核心装配模块（应用装配集中于此，main.py 仅为最小入口桩）。
 
 本文件用途：装配 backend（HTTP API）服务，包括：
@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 # - BACKEND_WEB_CORS_ORIGINS：允许跨域来源，逗号分隔，默认 *（开发期）。
 # - BACKEND_WEB_API_PREFIX：业务路由统一前缀，默认 /api/v1。
 DEFAULT_SERVICE_HOST = os.getenv("BACKEND_WEB_HOST", "0.0.0.0")
-DEFAULT_SERVICE_PORT = int(os.getenv("BACKEND_WEB_PORT", "8089"))
+DEFAULT_SERVICE_PORT = int(os.getenv("PORT") or os.getenv("BACKEND_WEB_PORT", "8089"))
 API_PREFIX = os.getenv("BACKEND_WEB_API_PREFIX", "/api/v1")
 SERVICE_NAME = "pdd-auto-reply-backend"
 SERVICE_VERSION = "0.1.0"
